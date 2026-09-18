@@ -107,6 +107,12 @@ class TripEndpointTests(SimpleTestCase):
     def test_routing_outage_is_502(self, _):
         self.assert_error(self.post(VALID), 502, None)
 
+    @patch("trips.ors.geocode", side_effect=ors.UpstreamError(403, None, "Quota exceeded"))
+    def test_routing_quota_is_503_with_its_own_message(self, _):
+        response = self.post(VALID)
+        self.assert_error(response, 503, None)
+        self.assertIn("quota", response.json()["error"]["message"])
+
     def test_wrong_method_is_405(self):
         response = self.client.get("/api/trip")
         self.assert_error(response, 405, None)

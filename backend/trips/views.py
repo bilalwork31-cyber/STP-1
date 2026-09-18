@@ -22,6 +22,8 @@ RATE_WINDOW_SECONDS = 60
 TRIP_RATE_LIMIT = 20
 PLACES_RATE_LIMIT = 120
 UPSTREAM_MESSAGE = "The routing service did not respond. Try again in a moment."
+QUOTA_MESSAGE = "The routing service quota is used up for now. Try again in a few minutes."
+QUOTA_STATUSES = (403, 429)
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +43,12 @@ def method_not_allowed(allowed: str) -> JsonResponse:
     response = error_response(405, f"This endpoint only accepts {allowed} requests.")
     response["Allow"] = allowed
     return response
+
+
+def upstream_response(error: ors.UpstreamError) -> JsonResponse:
+    if error.status in QUOTA_STATUSES:
+        return error_response(503, QUOTA_MESSAGE)
+    return error_response(502, UPSTREAM_MESSAGE)
 
 
 def rate_limited(request: HttpRequest, scope: str, limit: int) -> bool:
@@ -135,7 +143,7 @@ def trip(request: HttpRequest) -> JsonResponse:
         return error_response(error.status, str(error), error.field)
     except ors.UpstreamError as error:
         logger.warning("Trip planning failed upstream: %s %s %s", error.status, error.code, error)
-        return error_response(502, UPSTREAM_MESSAGE)
+        return upstream_response(error)
 
 
 def places(request: HttpRequest) -> JsonResponse:
@@ -154,5 +162,5 @@ def places(request: HttpRequest) -> JsonResponse:
         suggestions = ors.suggest(query)
     except ors.UpstreamError as error:
         logger.warning("Place search failed upstream: %s %s %s", error.status, error.code, error)
-        return error_response(502, UPSTREAM_MESSAGE)
+        return upstream_response(error)
     return JsonResponse([asdict(place) for place in suggestions], safe=False)
