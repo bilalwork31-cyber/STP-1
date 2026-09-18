@@ -23,7 +23,9 @@ TRIP_RATE_LIMIT = 20
 PLACES_RATE_LIMIT = 120
 UPSTREAM_MESSAGE = "The routing service did not respond. Try again in a moment."
 QUOTA_MESSAGE = "The routing service quota is used up for now. Try again in a few minutes."
-QUOTA_STATUSES = (403, 429)
+KEY_MESSAGE = "The routing service rejected the API key. Check ORS_API_KEY."
+TOO_MANY_REQUESTS = 429
+AUTH_STATUSES = (401, 403)
 TRIP_CACHE_SECONDS = 24 * 60 * 60
 
 logger = logging.getLogger(__name__)
@@ -47,8 +49,10 @@ def method_not_allowed(allowed: str) -> JsonResponse:
 
 
 def upstream_response(error: ors.UpstreamError) -> JsonResponse:
-    if error.status in QUOTA_STATUSES:
+    if error.status == TOO_MANY_REQUESTS or "quota" in str(error).lower():
         return error_response(503, QUOTA_MESSAGE)
+    if error.status in AUTH_STATUSES:
+        return error_response(502, KEY_MESSAGE)
     return error_response(502, UPSTREAM_MESSAGE)
 
 

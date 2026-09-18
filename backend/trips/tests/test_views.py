@@ -119,6 +119,15 @@ class TripEndpointTests(SimpleTestCase):
         self.assert_error(response, 503, None)
         self.assertIn("quota", response.json()["error"]["message"])
 
+    @patch(
+        "trips.ors.route",
+        side_effect=ors.UpstreamError(403, None, "Access to this API has been disallowed"),
+    )
+    def test_rejected_api_key_is_reported_as_such(self, _):
+        response = self.post(VALID)
+        self.assert_error(response, 502, None)
+        self.assertIn("API key", response.json()["error"]["message"])
+
     def test_wrong_method_is_405(self):
         response = self.client.get("/api/trip")
         self.assert_error(response, 405, None)
