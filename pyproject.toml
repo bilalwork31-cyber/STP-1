@@ -1,0 +1,15 @@
+[project]
+name = "spotter-hos"
+version = "1.0.0"
+requires-python = ">=3.12"
+dependencies = ["django==5.2.7"]
+
+[dependency-groups]
+dev = ["ruff==0.14.0"]
+
+[tool.ruff]
+line-length = 100
+src = ["backend"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
