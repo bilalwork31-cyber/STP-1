@@ -40,6 +40,8 @@ export interface Stop {
 export interface RouteStep {
   instruction: string;
   miles: number;
+  lat?: number;
+  lng?: number;
 }
 
 export interface RouteLeg {

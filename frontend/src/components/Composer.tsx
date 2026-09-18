@@ -72,7 +72,7 @@ export function Composer({ trip, loading, serverError, onChange, onSubmit }: Pro
           type="button"
           aria-label="Swap pickup and dropoff"
           onClick={() => onChange({ ...trip, pickup_location: trip.dropoff_location, dropoff_location: trip.pickup_location })}
-          className="z-10 mx-auto -my-3 grid size-7 shrink-0 place-items-center rounded-full bg-white text-muted ring-1 ring-line transition hover:text-ink md:-mx-3.5 md:my-0 md:rotate-90"
+          className="z-10 -my-3 mr-4 grid size-7 shrink-0 place-items-center self-end rounded-full bg-white text-muted shadow-xs ring-1 ring-line transition hover:scale-105 hover:text-ink md:-mx-3.5 md:my-0 md:mr-0 md:self-auto md:rotate-90"
         >
           <ArrowUpDown className="size-3.5" />
         </button>
@@ -93,12 +93,12 @@ export function Composer({ trip, loading, serverError, onChange, onSubmit }: Pro
               step={CYCLE_STEP}
               value={Number.isNaN(trip.cycle_used_hours) ? '' : trip.cycle_used_hours}
               onChange={(event) => set('cycle_used_hours')(event.target.valueAsNumber)}
-              className="w-12 bg-transparent font-medium text-ink focus:outline-none"
+              className="w-10 bg-transparent p-0 font-medium tabular-nums text-ink focus:outline-none"
               aria-describedby="cycle-hint"
             />
-            <span className="text-faint">of 70 hrs</span>
+            <span className="text-muted">of 70 hrs</span>
           </div>
-          <div className="absolute right-0 top-full z-30 mt-3 hidden w-[280px] rounded-2xl bg-white p-4 shadow-float ring-1 ring-black/5 group-focus-within:block">
+          <div className="absolute right-0 top-full z-30 mt-3 hidden w-[280px] max-w-[calc(100vw-2rem)] rounded-2xl bg-white p-4 shadow-float ring-1 ring-black/5 group-focus-within:block">
             <input
               type="range"
               min={0}

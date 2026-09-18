@@ -1,11 +1,9 @@
-const ESRI = 'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas';
-
 export const TILE_LAYERS = [
-  `${ESRI}/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
-  `${ESRI}/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}`,
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
 ];
 
-export const TILE_ATTRIBUTION = 'Tiles &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors · Towns &copy; GeoNames';
+export const TILE_ATTRIBUTION =
+  'Tiles &copy; Esri, DeLorme, NAVTEQ, USGS, Intermap, TomTom · Towns &copy; GeoNames';
 
 const CONTIGUOUS_US = { north: 50, south: 24, west: -125, east: -66 };
 const LANDING_ZOOMS = [4, 5];
@@ -34,7 +32,10 @@ export function warmTiles({ z, minX, maxX, minY, maxY }: TileRange): void {
     for (let x = minX; x <= maxX; x++) {
       const wrapped = ((x % (last + 1)) + last + 1) % (last + 1);
       for (const template of TILE_LAYERS) {
-        const url = template.replace('{z}', String(z)).replace('{y}', String(y)).replace('{x}', String(wrapped));
+        const url = template
+          .replace('{z}', String(z))
+          .replace('{y}', String(y))
+          .replace('{x}', String(wrapped));
         if (requested.has(url)) continue;
         requested.add(url);
         new Image().src = url;

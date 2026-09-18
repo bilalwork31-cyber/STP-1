@@ -45,6 +45,8 @@ class Place:
 class Step:
     instruction: str
     miles: float
+    lat: float | None = None
+    lng: float | None = None
 
 
 @dataclass(frozen=True)
@@ -147,12 +149,20 @@ def route(stops: list[Place]) -> Route:
         raise
     feature = payload["features"][0]
     to_pickup, to_dropoff = feature["properties"]["segments"]
+    coords = feature["geometry"]["coordinates"]
     return Route(
-        points=[(lat, lng) for lng, lat in feature["geometry"]["coordinates"]],
+        points=[(lat, lng) for lng, lat in coords],
         leg_miles=(to_pickup["distance"], to_dropoff["distance"]),
-        leg_steps=(_steps(to_pickup), _steps(to_dropoff)),
+        leg_steps=(_steps(to_pickup, coords), _steps(to_dropoff, coords)),
     )
 
 
-def _steps(segment: dict) -> list[Step]:
-    return [Step(step["instruction"], step["distance"]) for step in segment["steps"]]
+def _steps(segment: dict, coords: list[list[float]]) -> list[Step]:
+    steps = []
+    for step in segment["steps"]:
+        wp = step.get("way_points")
+        lat, lng = None, None
+        if wp and len(wp) > 0 and 0 <= wp[0] < len(coords):
+            lng, lat = coords[wp[0]]
+        steps.append(Step(step["instruction"], step["distance"], lat, lng))
+    return steps

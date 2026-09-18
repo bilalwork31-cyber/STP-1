@@ -1,8 +1,8 @@
 @import 'tailwindcss';
 
 @theme {
-  --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, monospace;
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --font-hand: 'Caveat', cursive;
 
   --color-ink: #0d1b20;
@@ -48,7 +48,6 @@
     font-family: var(--font-sans);
     font-size: 14px;
     -webkit-font-smoothing: antialiased;
-    font-feature-settings: 'ss01', 'cv11';
   }
 
   :focus-visible {
@@ -59,6 +58,16 @@
   ::selection {
     background: var(--color-brand-300);
     color: var(--color-brand-950);
+  }
+
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type='number'] {
+    -moz-appearance: textfield;
   }
 }
 
@@ -228,15 +237,17 @@
 }
 
 .hero-drift {
-  animation: hero-drift 28s ease-in-out infinite alternate;
+  animation: hero-zoom 14s ease-in-out infinite alternate;
+  will-change: transform;
+  transform-origin: 50% 65%;
 }
 
-@keyframes hero-drift {
-  from {
-    transform: scale(1.04);
+@keyframes hero-zoom {
+  0% {
+    transform: scale(1) translate3d(0, 0, 0);
   }
-  to {
-    transform: scale(1.12) translate(-1.5%, 1%);
+  100% {
+    transform: scale(1.22) translate3d(-1.5%, -1.5%, 0);
   }
 }
 

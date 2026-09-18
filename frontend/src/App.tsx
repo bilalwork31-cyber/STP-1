@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, RotateCw, X } from 'lucide-react';
+import { AlertCircle, Navigation, RotateCw, X } from 'lucide-react';
 import { ApiError, planTrip } from './api';
 import { toMs } from './format';
 import { momentAt, routeAnchors, truckAt } from './playback';
@@ -51,6 +51,15 @@ export default function App() {
   const [time, setTime] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [focusedStep, setFocusedStep] = useState<{
+    lat: number;
+    lng: number;
+    instruction: string;
+    miles: number;
+    stepNumber: number;
+    legIndex: number;
+    stepIndex: number;
+  } | null>(null);
 
   useEffect(() => {
     warmContiguousUs();
@@ -70,6 +79,7 @@ export default function App() {
       setTrip(planned);
       setTime(toMs(planned.summary.trip_start));
       setSelected(null);
+      setFocusedStep(null);
       setEditing(false);
     } catch (err) {
       if (!(err instanceof ApiError)) throw err;
@@ -87,6 +97,13 @@ export default function App() {
     },
     [trip],
   );
+
+  const goHome = useCallback(() => {
+    setTrip(null);
+    setRequest(null);
+    setFocusedStep(null);
+    window.location.hash = '';
+  }, []);
 
   const banner = error && !error.field && (
     <div role="alert" className="absolute left-1/2 top-4 z-[900] flex w-[min(92%,520px)] -translate-x-1/2 items-start gap-3 rounded-2xl bg-white p-3.5 shadow-float">
@@ -126,15 +143,73 @@ export default function App() {
             truck={truck}
             selected={selected}
             hovered={hovered}
+            focusedStep={focusedStep}
             onSelect={selectStop}
             onHover={setHovered}
           />
         </Suspense>
-        <TripBar request={request} view={view} logCount={trip.logs.length} onEdit={() => setEditing(true)} />
+        <TripBar request={request} view={view} logCount={trip.logs.length} onEdit={() => setEditing(true)} onHome={goHome} />
         {view === 'directions' ? (
-          <Directions legs={trip.route.legs} />
+          <Directions
+            legs={trip.route.legs}
+            activeStep={focusedStep ? { legIndex: focusedStep.legIndex, stepIndex: focusedStep.stepIndex } : null}
+            onSelectStep={(legIndex, stepIndex, step) => {
+              let lat = step.lat;
+              let lng = step.lng;
+              if (lat === undefined || lng === undefined) {
+                const coords = trip.route.coordinates;
+                const ratio = Math.min(1, Math.max(0, stepIndex / Math.max(1, trip.route.legs[legIndex].steps.length)));
+                const idx = Math.floor(ratio * (coords.length - 1));
+                [lat, lng] = coords[idx];
+              }
+              setFocusedStep({
+                lat,
+                lng,
+                instruction: step.instruction,
+                miles: step.miles,
+                stepNumber: stepIndex + 1,
+                legIndex,
+                stepIndex,
+              });
+              if (window.innerWidth < 640) {
+                window.location.hash = '#route';
+              }
+            }}
+          />
         ) : (
           <div className="pointer-events-none absolute inset-x-2 bottom-2 z-[600] mx-auto max-w-[1120px] sm:inset-x-4 sm:bottom-4">
+            {focusedStep && view === 'route' ? (
+              <div className="glass pointer-events-auto mb-2 flex items-center justify-between gap-3 rounded-2xl border border-brand-500/30 p-2.5 shadow-float sm:p-3">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-brand-600 text-white shadow-xs">
+                    <Navigation className="size-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10.5px] font-bold uppercase tracking-wider text-brand-700">
+                      Step {focusedStep.stepNumber} · {focusedStep.miles > 0 ? `${focusedStep.miles} mi` : 'Arrival'}
+                    </p>
+                    <p className="truncate text-[13px] font-semibold text-ink">{focusedStep.instruction}</p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <a
+                    href="#directions"
+                    className="flex items-center gap-1 rounded-full bg-brand-900 px-3 py-1.5 text-[12px] font-semibold text-white shadow-xs transition hover:bg-brand-700"
+                  >
+                    All steps
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setFocusedStep(null)}
+                    aria-label="Close step focus"
+                    title="Close step focus"
+                    className="grid size-7 place-items-center rounded-full text-muted hover:bg-black/5 hover:text-ink"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <Dock trip={trip} time={time} moment={moment} selected={selected} hovered={hovered} onTime={setTime} onSelect={selectStop} onHover={setHovered} />
           </div>
         )}

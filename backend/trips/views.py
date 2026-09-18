@@ -136,7 +136,7 @@ def plan_trip(texts: list[str], cycle_hours: float) -> dict:
 
 def cached_plan(texts: list[str], cycle_hours: float) -> dict:
     """Repeat trips are served from cache so they spend no routing quota."""
-    key = f"trip:{date.today()}:{cycle_hours}:" + "|".join(text.lower() for text in texts)
+    key = f"trip:v2:{date.today()}:{cycle_hours}:" + "|".join(text.lower() for text in texts)
     planned = cache.get(key)
     if planned is None:
         planned = plan_trip(texts, cycle_hours)

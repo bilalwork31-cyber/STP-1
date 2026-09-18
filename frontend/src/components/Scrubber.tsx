@@ -11,18 +11,22 @@ const RING_RADIUS = 8;
 const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
 
 const CLOCKS = [
-  { key: 'drive_left', label: 'Drive', limit: 11 },
-  { key: 'window_left', label: 'Window', limit: 14 },
-  { key: 'break_due_in', label: 'Break in', limit: 8 },
-  { key: 'cycle_left', label: 'Cycle', limit: 70 },
+  { key: 'drive_left', label: 'Drive Left', limit: 11, tip: 'Daily driving hours remaining (11h limit)' },
+  { key: 'window_left', label: 'Shift Left', limit: 14, tip: '14-hour on-duty window remaining' },
+  { key: 'break_due_in', label: 'Break Due In', limit: 8, tip: 'Hours until 30-minute rest break required' },
+  { key: 'cycle_left', label: 'Cycle Left', limit: 70, tip: '70-hour / 8-day cycle hours remaining' },
 ] as const;
 
-function Clock({ value, limit, label }: { value: number; limit: number; label: string }) {
+function Clock({ value, limit, label, tip }: { value: number; limit: number; label: string; tip: string }) {
+  const safeVal = Math.max(0, value);
   const color = value <= 0 ? 'var(--color-coral)' : value < 1 ? 'var(--color-onduty)' : 'var(--color-brand-500)';
   return (
-    <div className="flex items-center gap-2" title={`${label}: ${hm(value)} of ${limit} hrs left`}>
-      <svg viewBox="0 0 20 20" className="size-5 -rotate-90" aria-hidden>
-        <circle cx="10" cy="10" r={RING_RADIUS} fill="none" stroke="var(--color-line)" strokeWidth="2.5" />
+    <div
+      className="flex items-center gap-2 rounded-xl bg-white/80 p-2 shadow-2xs ring-1 ring-black/5 transition hover:bg-white sm:p-2.5"
+      title={`${label}: ${hm(safeVal)} remaining of ${limit}h. ${tip}`}
+    >
+      <svg viewBox="0 0 20 20" className="size-6 shrink-0 -rotate-90" aria-hidden>
+        <circle cx="10" cy="10" r={RING_RADIUS} fill="none" stroke="#cbd5e1" strokeWidth="2.5" />
         <circle
           cx="10"
           cy="10"
@@ -32,14 +36,17 @@ function Clock({ value, limit, label }: { value: number; limit: number; label: s
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeDasharray={RING_LENGTH}
-          strokeDashoffset={RING_LENGTH * (1 - Math.min(1, value / limit))}
+          strokeDashoffset={RING_LENGTH * (1 - Math.min(1, safeVal / limit))}
         />
       </svg>
-      <span className="text-[12px] text-muted">{label}</span>
-      <span className="font-mono text-[12.5px] font-medium text-ink">
-        {hm(value)}
-        <span className="text-faint">/{limit}h</span>
-      </span>
+      <div className="min-w-0 flex-1 leading-tight">
+        <div className="truncate text-[11px] font-semibold text-slate-600">{label}</div>
+        <div className="mt-0.5 flex items-baseline gap-1 font-mono text-[12.5px] font-bold tabular-nums text-ink">
+          <span>{hm(safeVal)}</span>
+          <span className="font-sans text-[10px] font-medium uppercase tracking-wider text-muted">left</span>
+          <span className="font-sans text-[10px] font-normal text-slate-400">/ {limit}h</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -89,10 +96,21 @@ export function Scrubber({ timeline, time, moment, onTime }: Props) {
             if (time >= end) onTime(start);
             setPlaying((p) => !p);
           }}
-          aria-label={playing ? 'Pause trip playback' : 'Play trip playback'}
-          className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-900 text-white transition hover:bg-brand-700"
+          aria-label={playing ? 'Pause route simulation' : 'Simulate route timeline'}
+          title={playing ? 'Pause route simulation' : 'Simulate route timeline'}
+          className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-brand-900 px-3 text-[12px] font-semibold text-white shadow-xs transition hover:bg-brand-700 active:scale-95"
         >
-          {playing ? <Pause className="size-3.5" /> : <Play className="size-3.5 translate-x-px" />}
+          {playing ? (
+            <>
+              <Pause className="size-3.5" />
+              <span>Pause</span>
+            </>
+          ) : (
+            <>
+              <Play className="size-3.5" />
+              <span>Simulate</span>
+            </>
+          )}
         </button>
         <div className="flex shrink-0 rounded-lg bg-canvas p-0.5" role="group" aria-label="Playback speed">
           {SPEEDS.map((s) => (
@@ -147,11 +165,29 @@ export function Scrubber({ timeline, time, moment, onTime }: Props) {
         </span>
       </div>
 
-      <div className="flex flex-wrap gap-x-6 gap-y-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px] text-muted">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="font-semibold text-slate-500">Timeline:</span>
+          <span className="inline-flex items-center gap-1.5 font-medium text-ink">
+            <span className="size-2 rounded-full bg-[#0f766e]" /> Driving
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-medium text-ink">
+            <span className="size-2 rounded-full bg-[#ea580c]" /> On Duty
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-medium text-ink">
+            <span className="size-2 rounded-full bg-[#6b21a8]" /> Sleeper Berth
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-medium text-ink">
+            <span className="size-2 rounded-full bg-[#64748b]" /> Off Duty
+          </span>
+        </div>
+        <span className="hidden text-slate-400 sm:inline">Drag timeline bar or click Simulate to preview run</span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
         {CLOCKS.map((c) => (
-          <Clock key={c.key} value={moment.clocks[c.key]} limit={c.limit} label={c.label} />
+          <Clock key={c.key} value={moment.clocks[c.key]} limit={c.limit} label={c.label} tip={c.tip} />
         ))}
-        <span className="ml-auto hidden truncate text-[12px] text-muted md:block">{moment.entry.note}</span>
       </div>
     </div>
   );

@@ -95,7 +95,15 @@ class Itinerary:
                         "miles": round(leg.miles, 1),
                         "driving_hours": hours(leg_minutes(leg.miles)),
                         "steps": [
-                            {"instruction": step.instruction, "miles": round(step.miles, 1)}
+                            {
+                                "instruction": step.instruction,
+                                "miles": round(step.miles, 1),
+                                **(
+                                    {"lat": round(step.lat, 6), "lng": round(step.lng, 6)}
+                                    if step.lat is not None and step.lng is not None
+                                    else {}
+                                ),
+                            }
                             for step in leg.steps
                         ],
                     }
