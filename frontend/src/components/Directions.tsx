@@ -22,14 +22,12 @@ export function Directions({ legs }: { legs: RouteLeg[] }) {
       {legs.map((leg, legIndex) => (
         <section key={leg.from + leg.to}>
           <header className="sticky top-0 z-10 border-b border-line bg-white/95 px-5 py-4 backdrop-blur">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
-              Leg {legIndex + 1} · {legIndex === 0 ? 'to pickup' : 'to dropoff'}
-            </p>
-            <p className="mt-1 text-[15px] font-semibold text-ink">
+            <p className="flex items-baseline gap-2 text-[15px] font-semibold text-ink">
+              <span className="grid size-5 shrink-0 place-items-center rounded-full bg-brand-100 text-[11px] font-semibold text-brand-700">{legIndex + 1}</span>
               {leg.from} <span className="text-faint">→</span> {leg.to}
             </p>
-            <p className="mt-0.5 font-mono text-[12px] text-muted">
-              {miles(leg.miles)} mi · {hours(leg.driving_hours)} hrs driving · {leg.steps.length} steps
+            <p className="mt-1 font-mono text-[12px] text-muted">
+              {legIndex === 0 ? 'To pickup' : 'To dropoff'} · {miles(leg.miles)} mi · {hours(leg.driving_hours)} hrs driving · {leg.steps.length} steps
             </p>
           </header>
           <ol className="px-2 py-2">

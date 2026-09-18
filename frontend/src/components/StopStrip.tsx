@@ -37,7 +37,7 @@ export function StopStrip({ stops, selected, hovered, onSelect, onHover }: Props
               aria-current={i === selected}
               aria-label={`${STOP_LABEL[stop.type]}, ${stop.name}, ${clock(stop.arrival)}. ${stop.reason}`}
               className={`flex w-[214px] items-center gap-2.5 rounded-xl border bg-white px-2.5 py-2 text-left transition ${
-                active ? 'border-brand-500 shadow-[0_0_0_3px_rgb(0_128_124/0.15)]' : 'border-line hover:border-faint'
+                active ? 'border-brand-500 shadow-[0_6px_16px_-6px_rgb(0_128_124/0.45)]' : 'border-line hover:border-faint'
               }`}
             >
               <span className="grid size-7 shrink-0 place-items-center rounded-full text-white" style={{ background: STOP_COLOR[stop.type] }}>
