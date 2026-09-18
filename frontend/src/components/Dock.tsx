@@ -22,12 +22,6 @@ interface Props {
 export function Dock({ trip, time, moment, selected, hovered, onTime, onSelect, onHover }: Props) {
   const [open, setOpen] = useState(() => window.matchMedia(WIDE_SCREEN).matches);
   const { summary } = trip;
-  const stats = [
-    `${miles(summary.total_miles)} mi`,
-    `${hours(summary.driving_hours)} hrs driving`,
-    duration(minutesBetween(summary.trip_start, summary.trip_end)),
-    `${summary.days} daily ${summary.days === 1 ? 'log' : 'logs'}`,
-  ];
 
   return (
     <section className="glass pointer-events-auto rounded-[22px] p-2.5 sm:p-3" aria-label="Trip details">

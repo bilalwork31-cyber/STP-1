@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { STOP_COLOR, STOP_LABEL, clock, dayLabel, hours, miles } from '../format';
+import { STOP_COLOR, STOP_LABEL, clock, hours, miles } from '../format';
 import { STOP_ICON } from './stopIcons';
 import type { Stop } from '../types';
 

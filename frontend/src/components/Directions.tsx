@@ -66,7 +66,6 @@ export function Directions({ legs, activeStep, onSelectStep }: Props) {
                 const isArrival = /^arrive/i.test(step.instruction);
                 const Icon = maneuverIcon(step.instruction);
                 const isDropoff = isArrival && isLastLeg;
-                const isPickup = isArrival && !isLastLeg;
                 const isActive = activeStep?.legIndex === legIndex && activeStep?.stepIndex === i;
 
                 if (isArrival) {
