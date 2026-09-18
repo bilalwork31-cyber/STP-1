@@ -30,12 +30,12 @@ export function Dock({ trip, time, moment, selected, hovered, onTime, onSelect, 
   ];
 
   return (
-    <section className="glass pointer-events-auto rounded-[26px] p-3 sm:p-4" aria-label="Trip details">
+    <section className="glass pointer-events-auto rounded-[22px] p-2.5 sm:p-3" aria-label="Trip details">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1">
-        <span className="flex items-center gap-1.5 rounded-full bg-brand-100 px-2.5 py-1 text-[12px] font-semibold text-brand-700">
+        <span className="flex items-center gap-1.5 rounded-full bg-brand-100 px-2 py-0.5 text-[11.5px] font-semibold text-brand-700">
           <ShieldCheck className="size-3.5" aria-hidden /> HOS compliant
         </span>
-        <p className="font-mono text-[13px] text-ink">
+        <p className="font-mono text-[12.5px] text-ink">
           {stats.map((stat, i) => (
             <span key={stat}>
               {i > 0 && <span className="mx-2 text-faint">·</span>}
@@ -43,7 +43,7 @@ export function Dock({ trip, time, moment, selected, hovered, onTime, onSelect, 
             </span>
           ))}
         </p>
-        <p className="text-[13px] text-muted">
+        <p className="hidden text-[12.5px] text-muted lg:block">
           Arrives {dayLabel(summary.trip_end)}, {clock(summary.trip_end)} · cycle ends at {hours(summary.cycle_used_end)} / 70
         </p>
         <button
@@ -57,11 +57,11 @@ export function Dock({ trip, time, moment, selected, hovered, onTime, onSelect, 
         </button>
       </div>
       {open && (
-        <div className="mt-3">
+        <div className="mt-2.5">
           <StopStrip stops={trip.stops} selected={selected} hovered={hovered} onSelect={onSelect} onHover={onHover} />
         </div>
       )}
-      <div className="mt-3 border-t border-line pt-3">
+      <div className="mt-2.5 border-t border-line pt-2.5">
         <Scrubber timeline={trip.timeline} time={time} moment={moment} onTime={onTime} />
       </div>
     </section>

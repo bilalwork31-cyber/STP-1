@@ -134,7 +134,7 @@ export default function App() {
         {view === 'directions' ? (
           <Directions legs={trip.route.legs} />
         ) : (
-          <div className="pointer-events-none absolute inset-x-2 bottom-2 z-[600] mx-auto max-w-[1280px] sm:inset-x-4 sm:bottom-4">
+          <div className="pointer-events-none absolute inset-x-2 bottom-2 z-[600] mx-auto max-w-[1120px] sm:inset-x-4 sm:bottom-4">
             <Dock trip={trip} time={time} moment={moment} selected={selected} hovered={hovered} onTime={setTime} onSelect={selectStop} onHover={setHovered} />
           </div>
         )}

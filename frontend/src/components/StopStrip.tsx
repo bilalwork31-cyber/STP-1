@@ -19,7 +19,7 @@ export function StopStrip({ stops, selected, hovered, onSelect, onHover }: Props
   }, [selected]);
 
   return (
-    <ol className="-mx-1 flex snap-x gap-2.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+    <ol className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 [scrollbar-width:none]">
       {stops.map((stop, i) => {
         const Icon = STOP_ICON[stop.type];
         const active = i === selected || i === hovered;
@@ -30,29 +30,31 @@ export function StopStrip({ stops, selected, hovered, onSelect, onHover }: Props
                 cards.current[i] = node;
               }}
               type="button"
+              title={stop.reason}
               onClick={() => onSelect(i)}
               onMouseEnter={() => onHover(i)}
               onMouseLeave={() => onHover(null)}
               aria-current={i === selected}
-              className={`flex h-full w-[232px] flex-col rounded-2xl border bg-white p-3 text-left transition ${
+              aria-label={`${STOP_LABEL[stop.type]}, ${stop.name}, ${clock(stop.arrival)}. ${stop.reason}`}
+              className={`flex w-[214px] items-center gap-2.5 rounded-xl border bg-white px-2.5 py-2 text-left transition ${
                 active ? 'border-brand-500 shadow-[0_0_0_3px_rgb(0_128_124/0.15)]' : 'border-line hover:border-faint'
               }`}
             >
-              <span className="flex items-center gap-2">
-                <span className="grid size-7 place-items-center rounded-full text-white" style={{ background: STOP_COLOR[stop.type] }}>
-                  <Icon className="size-3.5" aria-hidden />
-                </span>
-                <span className="text-[12px] font-semibold" style={{ color: STOP_COLOR[stop.type] }}>
-                  {STOP_LABEL[stop.type]}
-                </span>
-                <span className="ml-auto font-mono text-[12px] text-ink">{clock(stop.arrival)}</span>
+              <span className="grid size-7 shrink-0 place-items-center rounded-full text-white" style={{ background: STOP_COLOR[stop.type] }}>
+                <Icon className="size-3.5" aria-hidden />
               </span>
-              <span className="mt-2 truncate text-[14px] font-medium text-ink">{stop.name}</span>
-              <span className="mt-0.5 font-mono text-[11px] text-faint">
-                {dayLabel(stop.arrival)} · mi {miles(stop.mile_marker)}
-                {stop.duration_hours > 0 && ` · ${hours(stop.duration_hours)} hr`}
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="truncate text-[13px] font-medium text-ink">{stop.name}</span>
+                  <span className="shrink-0 font-mono text-[11.5px] text-ink">{clock(stop.arrival)}</span>
+                </span>
+                <span className="block truncate text-[11px] text-muted">
+                  <span className="font-medium" style={{ color: STOP_COLOR[stop.type] }}>{STOP_LABEL[stop.type]}</span>
+                  {' · '}
+                  {dayLabel(stop.arrival)} · mi {miles(stop.mile_marker)}
+                  {stop.duration_hours > 0 && ` · ${hours(stop.duration_hours)} hr`}
+                </span>
               </span>
-              <span className="mt-1.5 line-clamp-2 text-[12px] leading-snug text-muted">{stop.reason}</span>
             </button>
           </li>
         );

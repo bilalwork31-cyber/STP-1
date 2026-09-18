@@ -7,6 +7,8 @@ import type { TimelineEntry } from '../types';
 const BASE_MINUTES_PER_SECOND = 20;
 const SPEEDS = [1, 4, 16];
 const MINUTE_MS = 60_000;
+const RING_RADIUS = 8;
+const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
 
 const CLOCKS = [
   { key: 'drive_left', label: 'Drive', limit: 11 },
@@ -15,34 +17,29 @@ const CLOCKS = [
   { key: 'cycle_left', label: 'Cycle', limit: 70 },
 ] as const;
 
-function Ring({ value, limit, label }: { value: number; limit: number; label: string }) {
-  const radius = 17;
-  const circumference = 2 * Math.PI * radius;
-  const color = value <= 0 ? 'var(--color-coral)' : value < 1 ? 'var(--color-onduty)' : 'var(--color-brand-700)';
+function Clock({ value, limit, label }: { value: number; limit: number; label: string }) {
+  const color = value <= 0 ? 'var(--color-coral)' : value < 1 ? 'var(--color-onduty)' : 'var(--color-brand-500)';
   return (
-    <div className="flex items-center gap-2.5">
-      <svg viewBox="0 0 40 40" className="size-10 -rotate-90" aria-hidden>
-        <circle cx="20" cy="20" r={radius} fill="none" stroke="var(--color-line)" strokeWidth="3.5" />
+    <div className="flex items-center gap-2" title={`${label}: ${hm(value)} of ${limit} hrs left`}>
+      <svg viewBox="0 0 20 20" className="size-5 -rotate-90" aria-hidden>
+        <circle cx="10" cy="10" r={RING_RADIUS} fill="none" stroke="var(--color-line)" strokeWidth="2.5" />
         <circle
-          cx="20"
-          cy="20"
-          r={radius}
+          cx="10"
+          cy="10"
+          r={RING_RADIUS}
           fill="none"
           stroke={color}
-          strokeWidth="3.5"
+          strokeWidth="2.5"
           strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - Math.min(1, value / limit))}
-          className="transition-[stroke-dashoffset] duration-200"
+          strokeDasharray={RING_LENGTH}
+          strokeDashoffset={RING_LENGTH * (1 - Math.min(1, value / limit))}
         />
       </svg>
-      <div className="leading-tight">
-        <p className="text-[11px] text-muted">{label}</p>
-        <p className="font-mono text-[14px] font-medium text-ink">
-          {hm(value)}
-          <span className="ml-1 text-[11px] text-faint">/ {limit}h</span>
-        </p>
-      </div>
+      <span className="text-[12px] text-muted">{label}</span>
+      <span className="font-mono text-[12.5px] font-medium text-ink">
+        {hm(value)}
+        <span className="text-faint">/{limit}h</span>
+      </span>
     </div>
   );
 }
@@ -84,8 +81,8 @@ export function Scrubber({ timeline, time, moment, onTime }: Props) {
   const iso = fromMs(time);
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-col gap-2.5">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <button
           type="button"
           onClick={() => {
@@ -93,68 +90,68 @@ export function Scrubber({ timeline, time, moment, onTime }: Props) {
             setPlaying((p) => !p);
           }}
           aria-label={playing ? 'Pause trip playback' : 'Play trip playback'}
-          className="grid size-9 place-items-center rounded-full bg-brand-900 text-white transition hover:bg-brand-700"
+          className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-900 text-white transition hover:bg-brand-700"
         >
-          {playing ? <Pause className="size-4" /> : <Play className="size-4 translate-x-px" />}
+          {playing ? <Pause className="size-3.5" /> : <Play className="size-3.5 translate-x-px" />}
         </button>
-        <div className="flex rounded-lg bg-canvas p-0.5" role="group" aria-label="Playback speed">
+        <div className="flex shrink-0 rounded-lg bg-canvas p-0.5" role="group" aria-label="Playback speed">
           {SPEEDS.map((s) => (
             <button
               key={s}
               type="button"
               aria-pressed={speed === s}
               onClick={() => setSpeed(s)}
-              className={`rounded-md px-2 py-1 font-mono text-[11px] transition ${speed === s ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink'}`}
+              className={`rounded-md px-1.5 py-0.5 font-mono text-[11px] transition ${speed === s ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink'}`}
             >
               {s}x
             </button>
           ))}
         </div>
-        <p className="font-mono text-[13px] text-ink">
+        <p className="shrink-0 whitespace-nowrap font-mono text-[12.5px] text-ink">
           <span className="text-muted">{dayLabel(iso)}</span> {clock(iso)}
         </p>
+
+        <div className="relative order-last h-5 min-w-full flex-1 sm:order-none sm:min-w-[240px]">
+          <div className="absolute inset-x-0 top-1.5 flex h-2 overflow-hidden rounded-full" aria-hidden>
+            {timeline.map((entry) => (
+              <span
+                key={entry.start}
+                style={{ flexGrow: toMs(entry.end) - toMs(entry.start), background: STATUS_COLOR[entry.status] }}
+                className="border-r border-white/60 last:border-0"
+              />
+            ))}
+          </div>
+          <input
+            type="range"
+            min={start}
+            max={end}
+            step={MINUTE_MS * 15}
+            value={time}
+            onChange={(event) => {
+              setPlaying(false);
+              onTime(event.target.valueAsNumber);
+            }}
+            aria-label="Trip time"
+            aria-valuetext={`${dayLabel(iso)} ${clock(iso)}, ${STATUS_LABEL[moment.entry.status]}`}
+            className="scrub absolute inset-0 w-full cursor-pointer appearance-none bg-transparent"
+          />
+        </div>
+
         <span
-          className="ml-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium text-white"
+          className="ml-auto inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[12px] font-medium text-white sm:ml-0"
           style={{ background: STATUS_COLOR[moment.entry.status] }}
           aria-live="polite"
+          title={moment.entry.note}
         >
           {STATUS_LABEL[moment.entry.status]}
-          {moment.entry.note && moment.entry.note !== STATUS_LABEL[moment.entry.status] && (
-            <span className="font-normal opacity-85">· {moment.entry.note}</span>
-          )}
         </span>
       </div>
 
-      <div className="relative mt-3.5 h-6">
-        <div className="absolute inset-x-0 top-2 flex h-2 overflow-hidden rounded-full" aria-hidden>
-          {timeline.map((entry) => (
-            <span
-              key={entry.start}
-              style={{ flexGrow: toMs(entry.end) - toMs(entry.start), background: STATUS_COLOR[entry.status] }}
-              className="border-r border-white/60 last:border-0"
-            />
-          ))}
-        </div>
-        <input
-          type="range"
-          min={start}
-          max={end}
-          step={MINUTE_MS * 15}
-          value={time}
-          onChange={(event) => {
-            setPlaying(false);
-            onTime(event.target.valueAsNumber);
-          }}
-          aria-label="Trip time"
-          aria-valuetext={`${dayLabel(iso)} ${clock(iso)}, ${STATUS_LABEL[moment.entry.status]}`}
-          className="scrub absolute inset-0 w-full cursor-pointer appearance-none bg-transparent"
-        />
-      </div>
-
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="flex flex-wrap gap-x-6 gap-y-1.5">
         {CLOCKS.map((c) => (
-          <Ring key={c.key} value={moment.clocks[c.key]} limit={c.limit} label={c.label} />
+          <Clock key={c.key} value={moment.clocks[c.key]} limit={c.limit} label={c.label} />
         ))}
+        <span className="ml-auto hidden truncate text-[12px] text-muted md:block">{moment.entry.note}</span>
       </div>
     </div>
   );

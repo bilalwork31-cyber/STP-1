@@ -11,7 +11,7 @@ import type { Stop } from '../types';
 
 const US_CENTER: L.LatLngTuple = [39.5, -96.5];
 const FIT_TOP_LEFT: L.PointExpression = [48, 96];
-const FIT_BOTTOM_RIGHT: L.PointExpression = [48, 380];
+const FIT_BOTTOM_RIGHT: L.PointExpression = [48, 260];
 const TILE_SIZE = 256;
 
 function stopIcon(stop: Stop, active: boolean) {
