@@ -2,6 +2,8 @@
 
 Plans a US truck trip under the FMCSA hours of service rules and returns the route, required stops, turn by turn directions, and filled daily log sheets.
 
+**Live:** https://stp-1.vercel.app
+
 ![Home](docs/home.jpg)
 
 ## Stack
