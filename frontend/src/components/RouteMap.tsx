@@ -86,7 +86,7 @@ export function RouteMap({ route, stops, truck, selected, hovered, onSelect, onH
   );
 
   return (
-    <MapContainer center={US_CENTER} zoom={4} zoomControl={false} className="size-full" worldCopyJump>
+    <MapContainer center={US_CENTER} zoom={4} zoomControl={false} className="isolate size-full" worldCopyJump>
       {TILE_LAYERS.map((url, i) => (
         <TileLayer key={url} url={url} attribution={i === 0 ? TILE_ATTRIBUTION : undefined} maxZoom={16} keepBuffer={4} />
       ))}
