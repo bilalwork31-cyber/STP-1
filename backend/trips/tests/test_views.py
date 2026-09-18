@@ -27,10 +27,6 @@ VALID = {
 }
 
 
-def fake_town_names(points):
-    return {point: f"Town at {point[0]:.2f}" for point in points}
-
-
 class TripEndpointTests(SimpleTestCase):
     def setUp(self):
         cache.clear()
@@ -44,7 +40,6 @@ class TripEndpointTests(SimpleTestCase):
         self.assertEqual(response.json()["error"]["field"], field)
         self.assertTrue(response.json()["error"]["message"])
 
-    @patch("trips.ors.town_names", side_effect=fake_town_names)
     @patch("trips.ors.route", return_value=ROUTE)
     @patch("trips.ors.geocode", side_effect=PLACES.get)
     def test_plans_a_compliant_trip(self, *_):
@@ -59,7 +54,6 @@ class TripEndpointTests(SimpleTestCase):
         for log in trip["logs"]:
             self.assertEqual(sum(log["totals"].values()), 24)
 
-    @patch("trips.ors.town_names", side_effect=fake_town_names)
     @patch("trips.ors.route", return_value=ROUTE)
     @patch("trips.ors.geocode", side_effect=PLACES.get)
     def test_returns_turn_by_turn_directions_per_leg(self, *_):
@@ -74,6 +68,18 @@ class TripEndpointTests(SimpleTestCase):
         self.assertEqual(
             legs[1]["steps"], [{"instruction": "Keep right onto I 57", "miles": 200.8}]
         )
+
+    @patch("trips.ors.route", side_effect=[ROUTE, ors.UpstreamError(403, None, "Quota exceeded")])
+    def test_repeat_trip_is_served_without_routing_again(self, _):
+        self.assertEqual(self.post(VALID).status_code, 200)
+        self.assertEqual(self.post({**VALID, "pickup_location": "chicago, il"}).status_code, 200)
+
+    def test_resolves_city_and_state_without_the_geocoder(self):
+        with (
+            patch("trips.ors.route", return_value=ROUTE),
+            patch("trips.ors.geocode", side_effect=ors.UpstreamError(403, None, "Quota exceeded")),
+        ):
+            self.assertEqual(self.post(VALID).status_code, 200)
 
     def test_rejects_malformed_json(self):
         self.assert_error(self.post("{not json"), 400, None)
@@ -103,11 +109,11 @@ class TripEndpointTests(SimpleTestCase):
     def test_unroutable_trip_is_422(self, *_):
         self.assert_error(self.post(VALID), 422, None)
 
-    @patch("trips.ors.geocode", side_effect=ors.UpstreamError(None, None, "timed out"))
+    @patch("trips.ors.route", side_effect=ors.UpstreamError(None, None, "timed out"))
     def test_routing_outage_is_502(self, _):
         self.assert_error(self.post(VALID), 502, None)
 
-    @patch("trips.ors.geocode", side_effect=ors.UpstreamError(403, None, "Quota exceeded"))
+    @patch("trips.ors.route", side_effect=ors.UpstreamError(403, None, "Quota exceeded"))
     def test_routing_quota_is_503_with_its_own_message(self, _):
         response = self.post(VALID)
         self.assert_error(response, 503, None)
@@ -128,9 +134,13 @@ class PlacesEndpointTests(SimpleTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["error"]["field"], "q")
 
-    @patch("trips.ors.suggest", return_value=[PLACES["Chicago, IL"]])
-    def test_returns_suggestions(self, _):
+    def test_suggests_towns_without_the_geocoder(self):
         response = self.client.get("/api/places", {"q": "Chicag"})
+        self.assertEqual(response.json()[0]["label"], "Chicago, IL")
+
+    @patch("trips.ors.suggest", return_value=[PLACES["Chicago, IL"]])
+    def test_falls_back_to_the_geocoder_for_addresses(self, _):
+        response = self.client.get("/api/places", {"q": "233 S Wacker"})
         self.assertEqual(response.json(), [{"label": "Chicago, IL", "lat": 41.88, "lng": -87.63}])
 
     def test_rate_limit_is_429(self):

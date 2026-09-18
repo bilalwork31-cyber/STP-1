@@ -1,8 +1,7 @@
-"""OpenRouteService client: geocoding, truck routing and reverse geocoding."""
+"""OpenRouteService client: geocoding and truck routing."""
 
 import json
 import threading
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from http.client import HTTPException, HTTPSConnection
 from urllib.parse import urlencode
@@ -12,12 +11,11 @@ from django.conf import settings
 from trips.geo import LatLng
 
 HOST = "api.openrouteservice.org"
-TIMEOUT_SECONDS = 10
+TIMEOUT_SECONDS = 25
 COUNTRY = "US"
 COUNTRY_SUFFIX = ", USA"
 SUGGESTION_COUNT = 6
 SUGGESTION_LAYERS = "locality,county,region,address,venue"
-REVERSE_WORKERS = 8
 TRUCK_PROFILE = "driving-hgv"
 ACCEPT = "application/json, application/geo+json"
 NOT_FOUND = 404
@@ -57,7 +55,6 @@ class Route:
 
 
 _local = threading.local()
-_pool = ThreadPoolExecutor(max_workers=REVERSE_WORKERS)
 
 
 def _connection() -> HTTPSConnection:
@@ -159,21 +156,3 @@ def route(stops: list[Place]) -> Route:
 
 def _steps(segment: dict) -> list[Step]:
     return [Step(step["instruction"], step["distance"]) for step in segment["steps"]]
-
-
-def _nearest_town(point: LatLng) -> str:
-    lat, lng = point
-    for layer in ("locality", "county"):
-        params = {"point.lat": lat, "point.lon": lng, "layers": layer, "size": 1}
-        features = _call("/geocode/reverse", params)["features"]
-        if features:
-            properties = features[0]["properties"]
-            town = properties.get(layer) or properties["name"]
-            state = properties.get("region_a") or properties.get("region")
-            return f"{town}, {state}" if state else town
-    return f"{lat:.3f}, {lng:.3f}"
-
-
-def town_names(points: list[LatLng]) -> dict[LatLng, str]:
-    unique = list(dict.fromkeys(points))
-    return dict(zip(unique, _pool.map(_nearest_town, unique), strict=True))

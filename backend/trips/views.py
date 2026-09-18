@@ -8,7 +8,7 @@ from django.core.cache import cache
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from trips import hos, ors
+from trips import hos, ors, towns
 from trips.geo import Polyline
 from trips.itinerary import Itinerary, Leg, mile_key, waypoints
 
@@ -24,6 +24,7 @@ PLACES_RATE_LIMIT = 120
 UPSTREAM_MESSAGE = "The routing service did not respond. Try again in a moment."
 QUOTA_MESSAGE = "The routing service quota is used up for now. Try again in a few minutes."
 QUOTA_STATUSES = (403, 429)
+TRIP_CACHE_SECONDS = 24 * 60 * 60
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +97,7 @@ def parse_cycle(value: object) -> float:
 def geocode_all(texts: list[str]) -> list[ors.Place]:
     places = []
     for field, text in zip(LOCATION_FIELDS, texts, strict=True):
-        place = ors.geocode(text)
+        place = towns.find(text) or ors.geocode(text)
         if place is None:
             message = f"Could not find '{text}' in the US. Check the spelling or pick a suggestion."
             raise RequestError(422, message, field)
@@ -121,13 +122,22 @@ def plan_trip(texts: list[str], cycle_hours: float) -> dict:
     unnamed = {
         mile: point for mile, point in waypoints(events, polyline).items() if mile not in anchors
     }
-    towns = ors.town_names(list(unnamed.values()))
-    names = anchors | {mile: towns[point] for mile, point in unnamed.items()}
+    names = anchors | {mile: towns.nearest(point) for mile, point in unnamed.items()}
     legs = [
         Leg(current.label, pickup.label, route.leg_miles[0], route.leg_steps[0]),
         Leg(pickup.label, dropoff.label, route.leg_miles[1], route.leg_steps[1]),
     ]
     return Itinerary(events, polyline, names, cycle_minutes, date.today()).build(legs)
+
+
+def cached_plan(texts: list[str], cycle_hours: float) -> dict:
+    """Repeat trips are served from cache so they spend no routing quota."""
+    key = f"trip:{date.today()}:{cycle_hours}:" + "|".join(text.lower() for text in texts)
+    planned = cache.get(key)
+    if planned is None:
+        planned = plan_trip(texts, cycle_hours)
+        cache.set(key, planned, TRIP_CACHE_SECONDS)
+    return planned
 
 
 @csrf_exempt
@@ -138,7 +148,7 @@ def trip(request: HttpRequest) -> JsonResponse:
         return error_response(429, "Too many trip requests. Wait a minute and try again.")
     try:
         texts, cycle_hours = parse_trip(request.body)
-        return JsonResponse(plan_trip(texts, cycle_hours))
+        return JsonResponse(cached_plan(texts, cycle_hours))
     except RequestError as error:
         return error_response(error.status, str(error), error.field)
     except ors.UpstreamError as error:
@@ -159,7 +169,7 @@ def places(request: HttpRequest) -> JsonResponse:
             400, f"Search must be {MAX_LOCATION_LENGTH} characters or fewer.", "q"
         )
     try:
-        suggestions = ors.suggest(query)
+        suggestions = towns.suggest(query) or ors.suggest(query)
     except ors.UpstreamError as error:
         logger.warning("Place search failed upstream: %s %s %s", error.status, error.code, error)
         return upstream_response(error)

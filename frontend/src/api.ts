@@ -1,6 +1,6 @@
 import type { Place, TripRequest, TripResponse } from './types';
 
-const REQUEST_TIMEOUT_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 45_000;
 
 export class ApiError extends Error {
   constructor(
