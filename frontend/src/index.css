@@ -1,0 +1,242 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+  --font-hand: 'Caveat', cursive;
+
+  --color-ink: #0d1b20;
+  --color-muted: #5c6d73;
+  --color-faint: #8a999e;
+  --color-line: #e2e8e9;
+  --color-canvas: #eef2f2;
+  --color-desk: #e4eaea;
+
+  --color-brand-950: #03232b;
+  --color-brand-900: #06343f;
+  --color-brand-800: #0a4452;
+  --color-brand-700: #0f5767;
+  --color-brand-500: #00807c;
+  --color-brand-300: #bbdede;
+  --color-brand-100: #e3f2f1;
+
+  --color-coral: #fa4a63;
+  --color-coral-600: #e2334d;
+
+  --color-off: #94a3b8;
+  --color-sleeper: #7b6cf6;
+  --color-drive: #00807c;
+  --color-onduty: #f2a93b;
+
+  --color-ink-pen: #1f3a8c;
+
+  --shadow-float: 0 1px 2px rgb(6 52 63 / 0.06), 0 12px 32px -8px rgb(6 52 63 / 0.22);
+  --shadow-paper: 0 1px 1px rgb(13 27 32 / 0.04), 0 18px 40px -12px rgb(13 27 32 / 0.28);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+  }
+}
+
+@utility glass {
+  background: rgb(255 255 255 / 0.86);
+  backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid rgb(255 255 255 / 0.7);
+  box-shadow: var(--shadow-float);
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.18) transparent;
+}
+
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: #e9eeee;
+}
+
+.leaflet-control-attribution {
+  font-size: 10px;
+  background: rgb(255 255 255 / 0.7) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: var(--shadow-float);
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.stop-pin {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  color: #fff;
+  box-shadow: 0 4px 10px rgb(6 52 63 / 0.35);
+  transition: transform 150ms ease;
+}
+
+.stop-pin[data-active='true'] {
+  transform: scale(1.25);
+  box-shadow: 0 0 0 6px rgb(0 128 124 / 0.28), 0 4px 10px rgb(6 52 63 / 0.35);
+}
+
+.truck-pin {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: var(--color-coral);
+  color: #fff;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 8px rgb(250 74 99 / 0.22), 0 6px 14px rgb(6 52 63 / 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .app-shell {
+    display: none !important;
+  }
+
+  .print-sheets {
+    display: block !important;
+  }
+
+  .print-sheets > svg {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100vh;
+    padding: 0.5in;
+    break-after: page;
+    break-inside: avoid;
+  }
+
+  .print-sheets > svg:last-child {
+    break-after: auto;
+  }
+}
+
+.pen-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: pen-draw 1.4s cubic-bezier(0.3, 0.6, 0.2, 1) 0.15s forwards;
+}
+
+@keyframes pen-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.scrub::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #fff;
+  border: 3px solid var(--color-coral);
+  box-shadow: 0 2px 6px rgb(6 52 63 / 0.35);
+}
+
+.scrub::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #fff;
+  border: 3px solid var(--color-coral);
+}
+
+.segment {
+  padding: 10px 20px;
+  border-radius: 22px;
+  transition: background-color 150ms ease;
+}
+
+.segment:hover {
+  background: rgb(13 27 32 / 0.04);
+}
+
+.segment:focus-within {
+  background: #fff;
+  box-shadow: 0 6px 20px -6px rgb(3 35 43 / 0.25);
+}
+
+.segment-divider {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .segment-divider {
+    display: block;
+    width: 1px;
+    height: 32px;
+    background: var(--color-line);
+  }
+}
+
+.leaflet-top.leaflet-left {
+  top: 64px;
+}
+
+.hero-drift {
+  animation: hero-drift 28s ease-in-out infinite alternate;
+}
+
+@keyframes hero-drift {
+  from {
+    transform: scale(1.04);
+  }
+  to {
+    transform: scale(1.12) translate(-1.5%, 1%);
+  }
+}
+
+@media (max-width: 639px) {
+  .leaflet-control-zoom {
+    display: none;
+  }
+}

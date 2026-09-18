@@ -1,0 +1,30 @@
+{
+  "name": "spotter-hos-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "leaflet": "1.9.4",
+    "lucide-react": "0.546.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-leaflet": "5.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.1.14",
+    "@types/leaflet": "1.9.21",
+    "@types/node": "22.18.8",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.1",
+    "@vitejs/plugin-react": "5.0.4",
+    "tailwindcss": "4.1.14",
+    "typescript": "5.9.3",
+    "vite": "7.1.9"
+  }
+}
