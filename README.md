@@ -8,6 +8,8 @@ Plans a US truck trip under the FMCSA hours of service rules and returns the rou
 
 Django 5.2, React 19, TypeScript, Vite, Tailwind, Leaflet, OpenRouteService. Deployed as one Vercel project.
 
+US town data from [GeoNames](https://www.geonames.org) (CC BY 4.0) resolves city names locally, so a typical trip spends one routing call.
+
 ## Planning rules
 
 Property carrier on the 70 hr / 8 day cycle, no adverse driving conditions.

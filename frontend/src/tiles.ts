@@ -5,7 +5,7 @@ export const TILE_LAYERS = [
   `${ESRI}/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}`,
 ];
 
-export const TILE_ATTRIBUTION = 'Tiles &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors';
+export const TILE_ATTRIBUTION = 'Tiles &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors · Towns &copy; GeoNames';
 
 const CONTIGUOUS_US = { north: 50, south: 24, west: -125, east: -66 };
 const LANDING_ZOOMS = [4, 5];
