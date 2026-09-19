@@ -32,8 +32,8 @@ const SHORT_NOTES: Record<string, string> = {
   'Pretrip inspection before departure': 'Pre-trip',
   'Pickup, loading': 'Loading',
   '1 hr on duty for loading at the shipper': 'Loading',
-  'Dropoff, unloading': 'Unloading',
-  '1 hr on duty for unloading at the receiver': 'Unloading',
+  'Dropoff, unloading': 'Unload',
+  '1 hr on duty for unloading at the receiver': 'Unload',
   'Fuel': 'Fuel',
   'Fuel stop before 1,000 mi since the last fill': 'Fuel',
   '30 min break': '30m Break',
@@ -47,9 +47,78 @@ const SHORT_NOTES: Record<string, string> = {
   'Off duty': 'Off Duty',
 };
 
-function remarkPositions(log: DailyLog): number[] {
-  const tiers = [435, 475, 515];
-  return log.remarks.map((_, i) => tiers[i % tiers.length]);
+interface DisplayRemark {
+  minute: number;
+  location: string;
+  note: string;
+  rx: number;
+  ry: number;
+}
+
+function computeDisplayRemarks(log: DailyLog): DisplayRemark[] {
+  const filtered = log.remarks.filter((r, i, arr) => {
+    if (r.note === 'Driving' && i > 0) {
+      const prev = arr[i - 1];
+      if (prev.location === r.location && r.minute - prev.minute <= 120) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) return [];
+
+  const clusters: typeof filtered[] = [];
+  let curCluster: typeof filtered = [filtered[0]];
+  let lastX = x(filtered[0].minute);
+
+  for (let i = 1; i < filtered.length; i++) {
+    const rx = x(filtered[i].minute);
+    if (rx - lastX < 85) {
+      curCluster.push(filtered[i]);
+    } else {
+      clusters.push(curCluster);
+      curCluster = [filtered[i]];
+    }
+    lastX = rx;
+  }
+  clusters.push(curCluster);
+
+  const TIERS = [445, 515, 585];
+  const result: DisplayRemark[] = [];
+
+  for (const cluster of clusters) {
+    const k = cluster.length;
+    if (k === 1) {
+      result.push({
+        ...cluster[0],
+        rx: x(cluster[0].minute),
+        ry: TIERS[0],
+      });
+    } else if (k === 2) {
+      result.push({
+        ...cluster[0],
+        rx: x(cluster[0].minute),
+        ry: TIERS[1],
+      });
+      result.push({
+        ...cluster[1],
+        rx: x(cluster[1].minute),
+        ry: TIERS[0],
+      });
+    } else {
+      for (let i = 0; i < k; i++) {
+        const tIdx = Math.min(TIERS.length - 1, (k - 1) - i);
+        result.push({
+          ...cluster[i],
+          rx: x(cluster[i].minute),
+          ry: TIERS[tIdx],
+        });
+      }
+    }
+  }
+
+  return result;
 }
 
 function Field({ x1, x2, y, label, value, hand = true }: { x1: number; x2: number; y: number; label: string; value?: string; hand?: boolean }) {
@@ -75,7 +144,7 @@ interface Props {
 
 export function LogSheet({ log, animate = false }: Props) {
   const [year, month, day] = log.date.split('-');
-  const starts = remarkPositions(log);
+  const displayRemarks = computeDisplayRemarks(log);
   const onDutyBlocks = log.segments.filter((seg) => seg.status === 'on_duty');
 
   return (
@@ -166,18 +235,17 @@ export function LogSheet({ log, animate = false }: Props) {
       ))}
 
       <text x="40" y={GRID_BOTTOM + 34} fontSize="15" fontWeight="700" fill={PRINT}>Remarks</text>
-      <path d={`M 44 ${GRID_BOTTOM + 44} V 736 H 180`} fill="none" stroke={PRINT} strokeWidth="3" />
+      <path d={`M 44 ${GRID_BOTTOM + 44} V 776 H 224`} fill="none" stroke={PRINT} strokeWidth="2.4" />
+      <path d="M 636 776 H 956 V 464" fill="none" stroke={PRINT} strokeWidth="2.4" />
       {onDutyBlocks.map((seg) => (
         <path key={seg.start_minute} d={`M ${x(seg.start_minute)} ${GRID_BOTTOM + 4} v 10 H ${x(seg.end_minute)} v -10`} fill="none" stroke={PEN} strokeWidth="1.6" />
       ))}
-      {log.remarks.map((remark, i) => {
-        const rx = x(remark.minute);
-        const ry = starts[i];
+      {displayRemarks.map((remark, i) => {
         const shortNote = SHORT_NOTES[remark.note] || remark.note;
         return (
           <g key={`${remark.minute}-${i}`}>
-            <line x1={rx} x2={rx} y1={GRID_BOTTOM} y2={ry} stroke={PEN} strokeWidth="1" strokeDasharray="3 2" />
-            <text x={rx + 2} y={ry + 2} transform={`rotate(40 ${rx} ${ry})`} fontSize="11.5" fill={PEN} fontFamily="var(--font-hand)">
+            <line x1={remark.rx} x2={remark.rx} y1={GRID_BOTTOM} y2={remark.ry} stroke={PEN} strokeWidth="1" strokeDasharray="3 2" />
+            <text x={remark.rx + 2} y={remark.ry + 2} transform={`rotate(48 ${remark.rx} ${remark.ry})`} fontSize="11" fill={PEN} fontFamily="var(--font-hand)">
               <tspan fontWeight="700">{remark.location}</tspan>
               <tspan> ({shortNote})</tspan>
             </text>
@@ -185,24 +253,33 @@ export function LogSheet({ log, animate = false }: Props) {
         );
       })}
 
-      <text x="60" y="690" fontSize="12" fontWeight="600" fill={PRINT}>Shipping</text>
-      <text x="60" y="704" fontSize="12" fontWeight="600" fill={PRINT}>Documents:</text>
-      <text x="60" y="728" fontSize="10.5" fill={PRINT}>DVL or Manifest No. or</text>
-      <line x1="60" x2="220" y1="714" y2="714" stroke={PRINT} />
-      <text x="64" y="710" fontSize="13" fill={PEN} fontFamily="var(--font-hand)">MNF-89241-US</text>
-      <line x1="60" x2="220" y1="760" y2="760" stroke={PRINT} />
-      <text x="64" y="756" fontSize="13" fill={PEN} fontFamily="var(--font-hand)">Commercial Freight / Dry Van</text>
-      <text x="60" y="774" fontSize="10.5" fill={PRINT}>Shipper &amp; Commodity</text>
+      <text x="60" y="668" fontSize="11" fontWeight="700" fill={PRINT}>Shipping</text>
+      <text x="60" y="680" fontSize="11" fontWeight="700" fill={PRINT}>Documents:</text>
+      <line x1="60" x2="220" y1="708" y2="708" stroke={PRINT} />
+      <text x="64" y="703" fontSize="14" fill={PEN} fontFamily="var(--font-hand)">{log.shipping_doc_number || 'MNF-89241-US'}</text>
+      <text x="60" y="722" fontSize="9.5" fill={PRINT}>DVL or Manifest No. or</text>
+      <line x1="60" x2="220" y1="752" y2="752" stroke={PRINT} />
+      <text x="64" y="747" fontSize="13" fill={PEN} fontFamily="var(--font-hand)">General Freight / Dry Van</text>
+      <text x="60" y="766" fontSize="9.5" fill={PRINT}>Shipper &amp; Commodity</text>
 
-      <g transform="translate(640, 715)">
-        <text x="0" y="0" fontSize="10" fontStyle="italic" fill={PRINT}>I certify that these entries are true and correct</text>
-        <line x1="0" x2="260" y1="28" y2="28" stroke={PRINT} strokeWidth="1" />
-        <text x="16" y="24" fontSize="21" fill={PEN} fontFamily="var(--font-hand)">J. R. Walker</text>
-        <text x="130" y="42" fontSize="10" textAnchor="middle" fill={PRINT}>Driver's Signature in Full</text>
+      <g fontSize="9.5" textAnchor="middle" fill={PRINT}>
+        <text x="430" y="728">Enter name of place you reported and where released from work,</text>
+        <text x="430" y="742">and when and where each change of duty occurred.</text>
+        <text x="430" y="758">Use time standard of home terminal.</text>
       </g>
 
-      <text x="440" y="760" fontSize="10" textAnchor="middle" fill={PRINT}>Enter name of place you reported and where released from work and when and where each change of duty occurred.</text>
-      <text x="440" y="774" fontSize="10" textAnchor="middle" fill={PRINT}>Use time standard of home terminal.</text>
+      <g transform="translate(650, 700)">
+        <text x="120" y="10" fontSize="9.5" fontStyle="italic" textAnchor="middle" fill={PRINT}>
+          I certify that these entries are true and correct:
+        </text>
+        <line x1="0" x2="240" y1="46" y2="46" stroke={PRINT} strokeWidth="1" />
+        <text x="24" y="41" fontSize="22" fill={PEN} fontFamily="var(--font-hand)">
+          J. R. Walker
+        </text>
+        <text x="120" y="60" fontSize="10" textAnchor="middle" fill={PRINT}>
+          Driver's Signature in Full
+        </text>
+      </g>
 
       <line x1="40" x2={W - 40} y1="788" y2="788" stroke={PRINT} strokeWidth="2.4" />
       <text x="40" y="806" fontSize="11" fontWeight="600" fill={PRINT}>Recap:</text>

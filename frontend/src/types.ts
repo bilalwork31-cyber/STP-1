@@ -79,6 +79,7 @@ export interface DailyLog {
   from: string;
   to: string;
   miles_driving: number;
+  shipping_doc_number?: string;
   segments: LogSegment[];
   remarks: LogRemark[];
   totals: Record<DutyStatus, number>;
