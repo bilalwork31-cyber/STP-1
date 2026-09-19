@@ -16,8 +16,8 @@ function validate(trip: TripRequest): Partial<Record<TripField, string>> {
     errors.dropoff_location = 'Dropoff must differ from pickup.';
   }
   const cycle = trip.cycle_used_hours;
-  if (!(cycle >= 0 && cycle <= CYCLE_LIMIT) || cycle % CYCLE_STEP !== 0) {
-    errors.cycle_used_hours = `Cycle used must be 0 to ${CYCLE_LIMIT} hrs, in 15 min steps.`;
+  if (Number.isNaN(cycle) || cycle < 0 || cycle > CYCLE_LIMIT) {
+    errors.cycle_used_hours = `Cycle used must be between 0 and ${CYCLE_LIMIT} hrs.`;
   }
   return errors;
 }
@@ -40,7 +40,9 @@ export function Composer({ trip, loading, serverError, onChange, onSubmit }: Pro
 
   const submit = () => {
     setTouched(true);
-    if (!Object.keys(validate(trip)).length) onSubmit(trip);
+    const roundedCycle = Math.round(Math.max(0, Math.min(CYCLE_LIMIT, trip.cycle_used_hours || 0)) / CYCLE_STEP) * CYCLE_STEP;
+    const normalized = { ...trip, cycle_used_hours: Number(roundedCycle.toFixed(2)) };
+    if (!Object.keys(validate(normalized)).length) onSubmit(normalized);
   };
 
   useEffect(() => {

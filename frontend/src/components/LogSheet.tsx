@@ -13,8 +13,6 @@ const BAND_H = 26;
 const ROW_H = 36;
 const GRID_Y = BAND_Y + BAND_H;
 const GRID_BOTTOM = GRID_Y + ROW_H * 4;
-const REMARKS_Y = GRID_BOTTOM + 44;
-const LABEL_GAP = 44;
 const ROWS: DutyStatus[] = ['off_duty', 'sleeper_berth', 'driving', 'on_duty'];
 const ROW_TITLES = ['1. Off Duty', '2. Sleeper', '3. Driving', '4. On Duty'];
 const ROW_SUBTITLES = ['', 'Berth', '', '(not driving)'];
@@ -29,15 +27,29 @@ function dutyPath(log: DailyLog): string {
   return [`M ${x(first.start_minute)} ${rowCenter(first.status)} H ${x(first.end_minute)}`, ...moves].join(' ');
 }
 
+const SHORT_NOTES: Record<string, string> = {
+  'Pretrip inspection': 'Pre-trip',
+  'Pretrip inspection before departure': 'Pre-trip',
+  'Pickup, loading': 'Loading',
+  '1 hr on duty for loading at the shipper': 'Loading',
+  'Dropoff, unloading': 'Unloading',
+  '1 hr on duty for unloading at the receiver': 'Unloading',
+  'Fuel': 'Fuel',
+  'Fuel stop before 1,000 mi since the last fill': 'Fuel',
+  '30 min break': '30m Break',
+  '30 min break required after 8 hrs cumulative driving': '30m Break',
+  '10 hr sleeper berth': '10h Rest',
+  '10 hr reset: 11 hr driving limit reached': '10h Rest',
+  '10 hr reset: 14 hr window reached': '10h Rest',
+  '34 hr restart': '34h Restart',
+  '34 hr restart: 70 hr / 8 day cycle reached': '34h Restart',
+  'Driving': 'Driving',
+  'Off duty': 'Off Duty',
+};
+
 function remarkPositions(log: DailyLog): number[] {
-  const starts: number[] = new Array(log.remarks.length);
-  let nextKey = Infinity;
-  for (let i = log.remarks.length - 1; i >= 0; i--) {
-    const rx = x(log.remarks[i].minute);
-    starts[i] = Math.max(REMARKS_Y, rx - nextKey + LABEL_GAP);
-    nextKey = rx - starts[i];
-  }
-  return starts;
+  const tiers = [435, 475, 515];
+  return log.remarks.map((_, i) => tiers[i % tiers.length]);
 }
 
 function Field({ x1, x2, y, label, value, hand = true }: { x1: number; x2: number; y: number; label: string; value?: string; hand?: boolean }) {
@@ -93,11 +105,11 @@ export function LogSheet({ log, animate = false }: Props) {
       <text x="331" y="162" fontSize="26" textAnchor="middle" fill={PEN} fontFamily="var(--font-hand)">{Math.round(log.miles_driving)}</text>
       <text x="145" y="189" fontSize="10.5" textAnchor="middle" fill={PRINT}>Total Miles Driving Today</text>
       <text x="331" y="189" fontSize="10.5" textAnchor="middle" fill={PRINT}>Total Mileage Today</text>
-      <Field x1={60} x2={416} y={224} label="Truck/Tractor and Trailer Numbers or License Plate(s)/State (show each unit)" />
+      <Field x1={60} x2={416} y={224} label="Truck/Tractor and Trailer Numbers or License Plate(s)/State (show each unit)" value="TRK-408 / TLR-5321 (IL)" />
 
-      <Field x1={470} x2={940} y={148} label="Name of Carrier or Carriers" />
-      <Field x1={470} x2={940} y={188} label="Main Office Address" />
-      <Field x1={470} x2={940} y={228} label="Home Terminal Address" />
+      <Field x1={470} x2={940} y={148} label="Name of Carrier or Carriers" value="Spotter Freight Lines, Inc." />
+      <Field x1={470} x2={940} y={188} label="Main Office Address" value="100 Logistics Blvd, Chicago, IL 60601" />
+      <Field x1={470} x2={940} y={228} label="Home Terminal Address" value={`${log.from} Terminal`} />
 
       <rect x={GRID_X - 136} y={BAND_Y} width={TOTAL_X + 64 - (GRID_X - 136)} height={BAND_H} fill={PRINT} />
       {HOUR_LABELS.map((label, hour) =>
@@ -161,12 +173,13 @@ export function LogSheet({ log, animate = false }: Props) {
       {log.remarks.map((remark, i) => {
         const rx = x(remark.minute);
         const ry = starts[i];
+        const shortNote = SHORT_NOTES[remark.note] || remark.note;
         return (
           <g key={`${remark.minute}-${i}`}>
-            <line x1={rx} x2={rx} y1={GRID_BOTTOM} y2={ry} stroke={PEN} strokeWidth="1.1" />
-            <text x={rx + 3} y={ry + 3} transform={`rotate(45 ${rx} ${ry})`} fontSize="16" fill={PEN} fontFamily="var(--font-hand)">
-              <tspan fontWeight="600">{remark.location}</tspan>
-              <tspan> · {remark.note}</tspan>
+            <line x1={rx} x2={rx} y1={GRID_BOTTOM} y2={ry} stroke={PEN} strokeWidth="1" strokeDasharray="3 2" />
+            <text x={rx + 2} y={ry + 2} transform={`rotate(40 ${rx} ${ry})`} fontSize="11.5" fill={PEN} fontFamily="var(--font-hand)">
+              <tspan fontWeight="700">{remark.location}</tspan>
+              <tspan> ({shortNote})</tspan>
             </text>
           </g>
         );
@@ -175,12 +188,21 @@ export function LogSheet({ log, animate = false }: Props) {
       <text x="60" y="690" fontSize="12" fontWeight="600" fill={PRINT}>Shipping</text>
       <text x="60" y="704" fontSize="12" fontWeight="600" fill={PRINT}>Documents:</text>
       <text x="60" y="728" fontSize="10.5" fill={PRINT}>DVL or Manifest No. or</text>
-      <line x1="60" x2="180" y1="714" y2="714" stroke={PRINT} />
-      <line x1="60" x2="180" y1="760" y2="760" stroke={PRINT} />
+      <line x1="60" x2="220" y1="714" y2="714" stroke={PRINT} />
+      <text x="64" y="710" fontSize="13" fill={PEN} fontFamily="var(--font-hand)">MNF-89241-US</text>
+      <line x1="60" x2="220" y1="760" y2="760" stroke={PRINT} />
+      <text x="64" y="756" fontSize="13" fill={PEN} fontFamily="var(--font-hand)">Commercial Freight / Dry Van</text>
       <text x="60" y="774" fontSize="10.5" fill={PRINT}>Shipper &amp; Commodity</text>
 
-      <text x="560" y="760" fontSize="11" textAnchor="middle" fill={PRINT}>Enter name of place you reported and where released from work and when and where each change of duty occurred.</text>
-      <text x="560" y="775" fontSize="11" textAnchor="middle" fill={PRINT}>Use time standard of home terminal.</text>
+      <g transform="translate(640, 715)">
+        <text x="0" y="0" fontSize="10" fontStyle="italic" fill={PRINT}>I certify that these entries are true and correct</text>
+        <line x1="0" x2="260" y1="28" y2="28" stroke={PRINT} strokeWidth="1" />
+        <text x="16" y="24" fontSize="21" fill={PEN} fontFamily="var(--font-hand)">J. R. Walker</text>
+        <text x="130" y="42" fontSize="10" textAnchor="middle" fill={PRINT}>Driver's Signature in Full</text>
+      </g>
+
+      <text x="440" y="760" fontSize="10" textAnchor="middle" fill={PRINT}>Enter name of place you reported and where released from work and when and where each change of duty occurred.</text>
+      <text x="440" y="774" fontSize="10" textAnchor="middle" fill={PRINT}>Use time standard of home terminal.</text>
 
       <line x1="40" x2={W - 40} y1="788" y2="788" stroke={PRINT} strokeWidth="2.4" />
       <text x="40" y="806" fontSize="11" fontWeight="600" fill={PRINT}>Recap:</text>
@@ -191,9 +213,9 @@ export function LogSheet({ log, animate = false }: Props) {
 
       <text x="300" y="806" fontSize="11" fontWeight="600" fill={PRINT}>70 Hour / 8 Day Drivers</text>
       {[
-        { col: 300, head: 'A. Total hours on duty', sub: 'last 7 days incl. today', value: hm(log.recap.total_last_8_days) },
+        { col: 300, head: 'A. Total hours on duty', sub: 'last 7 days incl. today', value: hm(log.recap.total_last_7_days ?? log.recap.total_last_8_days) },
         { col: 430, head: 'B. Total hours available', sub: 'tomorrow, 70 hr minus A*', value: hm(log.recap.available_tomorrow) },
-        { col: 560, head: 'C. Total hours on duty', sub: 'last 5 days incl. today', value: '' },
+        { col: 560, head: 'C. Total hours on duty', sub: 'last 8 days incl. today', value: hm(log.recap.total_last_8_days) },
       ].map((cell) => (
         <g key={cell.col}>
           <text x={cell.col} y="822" fontSize="9.5" fill={PRINT}>{cell.head}</text>

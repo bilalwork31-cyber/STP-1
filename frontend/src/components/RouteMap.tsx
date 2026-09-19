@@ -129,18 +129,24 @@ export function RouteMap({ route, stops, truck, selected, hovered, focusedStep, 
       <FocusManeuver step={focusedStep ?? null} />
       <Polyline positions={route} pathOptions={{ color: '#ffffff', weight: 9, opacity: 0.9 }} />
       <Polyline positions={route} pathOptions={{ color: '#00807C', weight: 4.5 }} />
-      {stops.map((stop, i) => (
-        <Marker
-          key={`${stop.type}-${stop.arrival}`}
-          position={[stop.lat, stop.lng]}
-          icon={icons[i]}
-          zIndexOffset={i === selected ? 1000 : 0}
-          eventHandlers={{
-            click: () => onSelect(i),
-            mouseover: () => onHover(i),
-            mouseout: () => onHover(null),
-          }}
-        >
+      {stops.map((stop, i) => {
+        let position: [number, number] = [stop.lat, stop.lng];
+        const isDuplicate = stops.findIndex((s, idx) => idx < i && Math.abs(s.lat - stop.lat) < 1e-4 && Math.abs(s.lng - stop.lng) < 1e-4) !== -1;
+        if (isDuplicate) {
+          position = [stop.lat + 0.0018, stop.lng + 0.0018];
+        }
+        return (
+          <Marker
+            key={`${stop.type}-${stop.arrival}-${i}`}
+            position={position}
+            icon={icons[i]}
+            zIndexOffset={i === selected ? 1000 : isDuplicate ? 100 : 0}
+            eventHandlers={{
+              click: () => onSelect(i),
+              mouseover: () => onHover(i),
+              mouseout: () => onHover(null),
+            }}
+          >
           <Popup>
             <p className="font-semibold text-ink">{stop.name}</p>
             <p className="text-[12px] font-medium" style={{ color: STOP_COLOR[stop.type] }}>
@@ -153,7 +159,8 @@ export function RouteMap({ route, stops, truck, selected, hovered, focusedStep, 
             <p className="mt-1 text-[12px] text-muted">{stop.reason}</p>
           </Popup>
         </Marker>
-      ))}
+        );
+      })}
       {focusedStep && (
         <Marker
           position={[focusedStep.lat, focusedStep.lng]}

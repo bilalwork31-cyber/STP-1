@@ -83,7 +83,7 @@ export function TripBar({ request, view, logCount, onEdit, onHome }: Props) {
           <span className="max-w-[130px] truncate font-medium text-ink">{request.pickup_location}</span>
           <span className="text-faint">→</span>
           <span className="max-w-[130px] truncate font-medium text-ink">{request.dropoff_location}</span>
-          <span className="text-muted">· {request.cycle_used_hours}h</span>
+          <span className="text-muted">· {request.cycle_used_hours}h cycle · 55 mph</span>
         </span>
         <span className="font-medium text-ink md:hidden">Edit</span>
         <span className="hidden rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-semibold text-brand-700 md:inline">

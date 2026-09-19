@@ -84,6 +84,7 @@ export interface DailyLog {
   totals: Record<DutyStatus, number>;
   recap: {
     on_duty_today: number;
+    total_last_7_days?: number;
     total_last_8_days: number;
     available_tomorrow: number;
   };
@@ -98,6 +99,7 @@ export interface TripSummary {
   days: number;
   cycle_used_start: number;
   cycle_used_end: number;
+  planning_speed_mph?: number;
 }
 
 export interface TripResponse {

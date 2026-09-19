@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pause, Play } from 'lucide-react';
 import { STATUS_COLOR, STATUS_LABEL, clock, dayLabel, fromMs, hm, toMs } from '../format';
-import type { Moment } from '../playback';
+import { entryAt, type Moment } from '../playback';
 import type { TimelineEntry } from '../types';
 
 const BASE_MINUTES_PER_SECOND = 20;
@@ -66,13 +66,37 @@ export function Scrubber({ timeline, time, moment, onTime }: Props) {
   const timeRef = useRef(time);
   timeRef.current = time;
 
+  const totalDrivingMinutes = useMemo(() => {
+    return timeline
+      .filter((e) => e.status === 'driving')
+      .reduce((sum, e) => sum + (toMs(e.end) - toMs(e.start)) / MINUTE_MS, 0);
+  }, [timeline]);
+
   useEffect(() => {
     if (!playing) return;
     let frame = 0;
     let last = performance.now();
     const tick = (now: number) => {
-      const next = timeRef.current + ((now - last) / 1000) * BASE_MINUTES_PER_SECOND * speed * MINUTE_MS;
+      const dtSec = Math.min((now - last) / 1000, 0.1);
       last = now;
+
+      const curIdx = entryAt(timeline, timeRef.current);
+      const curEntry = timeline[curIdx];
+
+      let advanceMs: number;
+      if (curEntry && curEntry.status === 'driving') {
+        const rateMinutesPerSec = Math.max(30, totalDrivingMinutes / 20) * speed;
+        advanceMs = dtSec * rateMinutesPerSec * MINUTE_MS;
+      } else if (curEntry) {
+        const entryDurationMs = Math.max(MINUTE_MS, toMs(curEntry.end) - toMs(curEntry.start));
+        const targetDurationSec = Math.max(0.2, 0.9 / Math.sqrt(speed));
+        const rateMsPerSec = entryDurationMs / targetDurationSec;
+        advanceMs = dtSec * rateMsPerSec;
+      } else {
+        advanceMs = dtSec * BASE_MINUTES_PER_SECOND * speed * MINUTE_MS;
+      }
+
+      const next = timeRef.current + advanceMs;
       if (next >= end) {
         onTime(end);
         setPlaying(false);
@@ -83,7 +107,7 @@ export function Scrubber({ timeline, time, moment, onTime }: Props) {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [playing, speed, end, onTime]);
+  }, [playing, speed, end, onTime, timeline, totalDrivingMinutes]);
 
   const iso = fromMs(time);
 
@@ -93,7 +117,10 @@ export function Scrubber({ timeline, time, moment, onTime }: Props) {
         <button
           type="button"
           onClick={() => {
-            if (time >= end) onTime(start);
+            if (time >= end) {
+              onTime(start);
+              timeRef.current = start;
+            }
             setPlaying((p) => !p);
           }}
           aria-label={playing ? 'Pause route simulation' : 'Simulate route timeline'}

@@ -33,30 +33,59 @@ export function momentAt(timeline: TimelineEntry[], ms: number): Moment {
   };
 }
 
-function nearestIndex(route: [number, number][], lat: number, lng: number): number {
-  let best = 0;
+function nearestIndex(route: [number, number][], lat: number, lng: number, startIndex = 0): number {
+  let best = startIndex;
   let bestDistance = Infinity;
-  route.forEach(([rLat, rLng], i) => {
+  for (let i = startIndex; i < route.length; i++) {
+    const [rLat, rLng] = route[i];
     const distance = (rLat - lat) ** 2 + (rLng - lng) ** 2;
     if (distance < bestDistance) {
       best = i;
       bestDistance = distance;
     }
-  });
+  }
   return best;
 }
 
 export function routeAnchors(route: [number, number][], timeline: TimelineEntry[]): number[] {
-  const anchors = timeline.map((entry) => nearestIndex(route, entry.lat, entry.lng));
-  return [...anchors, route.length - 1];
+  let lastIdx = 0;
+  const anchors = timeline.map((entry) => {
+    lastIdx = nearestIndex(route, entry.lat, entry.lng, lastIdx);
+    return lastIdx;
+  });
+  return [...anchors, Math.max(lastIdx, route.length - 1)];
 }
 
 export function truckAt(route: [number, number][], timeline: TimelineEntry[], anchors: number[], ms: number): [number, number] {
+  if (!route || route.length === 0) return [0, 0];
   const index = entryAt(timeline, ms);
   const entry = timeline[index];
+  if (!entry) return route[0];
   if (entry.status !== 'driving') return [entry.lat, entry.lng];
-  const progress = Math.min(1, (ms - toMs(entry.start)) / (toMs(entry.end) - toMs(entry.start)));
-  const from = anchors[index];
-  const to = Math.max(from, anchors[index + 1]);
-  return route[Math.round(from + (to - from) * progress)];
+
+  const startMs = toMs(entry.start);
+  const endMs = toMs(entry.end);
+  const duration = endMs - startMs;
+  const progress = duration > 0 ? Math.min(1, Math.max(0, (ms - startMs) / duration)) : 0;
+
+  const from = Math.min(route.length - 1, Math.max(0, anchors[index] ?? 0));
+  const to = Math.min(route.length - 1, Math.max(from, anchors[index + 1] ?? from));
+
+  if (from === to) return route[from];
+
+  const floatIdx = from + (to - from) * progress;
+  const floorIdx = Math.floor(floatIdx);
+  const ceilIdx = Math.min(route.length - 1, Math.ceil(floatIdx));
+  const frac = floatIdx - floorIdx;
+
+  if (floorIdx === ceilIdx || frac <= 0) {
+    return route[floorIdx];
+  }
+
+  const p1 = route[floorIdx];
+  const p2 = route[ceilIdx];
+  return [
+    p1[0] + (p2[0] - p1[0]) * frac,
+    p1[1] + (p2[1] - p1[1]) * frac,
+  ];
 }

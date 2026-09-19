@@ -57,6 +57,8 @@ export function Directions({ legs, activeStep, onSelectStep }: Props) {
                 <span className="text-slate-300" aria-hidden>·</span>
                 <span>{hours(leg.driving_hours)}h driving</span>
                 <span className="text-slate-300" aria-hidden>·</span>
+                <span>55 mph avg</span>
+                <span className="text-slate-300" aria-hidden>·</span>
                 <span>{leg.steps.length} steps</span>
               </div>
             </header>

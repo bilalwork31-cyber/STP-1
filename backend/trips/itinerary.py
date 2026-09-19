@@ -129,6 +129,7 @@ class Itinerary:
             "days": days,
             "cycle_used_start": hours(self.cycle_used_minutes),
             "cycle_used_end": hours(cycle_end),
+            "planning_speed_mph": 55,
         }
 
     def stops(self) -> list[dict]:
@@ -249,6 +250,33 @@ class DailyLog:
         totals = self.minutes_by_status(segments)
         on_duty_today = totals[Status.DRIVING] + totals[Status.ON_DUTY]
         cycle = cycle_used_at(self.events, self.itinerary.cycle_used_minutes, self.hi)
+        day_idx = self.lo // DAY
+
+        last_restart_end = None
+        for e in self.events:
+            if e.stop == StopType.RESTART and e.end <= self.hi:
+                last_restart_end = e.end
+
+        win7_start = max(0, self.hi - 7 * DAY)
+        if last_restart_end is not None and last_restart_end >= win7_start:
+            c7 = sum(
+                overlap(e.start, e.end, last_restart_end, self.hi)
+                for e in self.events
+                if e.status in ON_DUTY_STATUSES
+            )
+        else:
+            if day_idx == 0:
+                c7 = min(CYCLE, round(self.itinerary.cycle_used_minutes * (6 / 7)) + on_duty_today)
+            else:
+                prior_trip_duty = sum(
+                    overlap(e.start, e.end, max(0, day_idx - 6) * DAY, self.hi)
+                    for e in self.events
+                    if e.status in ON_DUTY_STATUSES
+                )
+                days_from_prior = max(0, 7 - (day_idx + 1))
+                prior_share = round(self.itinerary.cycle_used_minutes * (days_from_prior / 7.0))
+                c7 = min(CYCLE, prior_share + prior_trip_duty)
+
         return {
             "date": (self.itinerary.midnight + timedelta(minutes=self.lo)).date().isoformat(),
             "from": self.place_at(self.lo),
@@ -259,6 +287,7 @@ class DailyLog:
             "totals": {status: hours(minutes) for status, minutes in totals.items()},
             "recap": {
                 "on_duty_today": hours(on_duty_today),
+                "total_last_7_days": hours(c7),
                 "total_last_8_days": hours(cycle),
                 "available_tomorrow": hours(max(0, CYCLE - cycle)),
             },

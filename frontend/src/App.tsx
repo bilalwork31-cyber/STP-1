@@ -131,7 +131,7 @@ export default function App() {
   }
 
   const moment = momentAt(trip.timeline, time);
-  const truck = time > toMs(trip.summary.trip_start) ? truckAt(trip.route.coordinates, trip.timeline, anchors, time) : null;
+  const truck = trip && time >= toMs(trip.summary.trip_start) ? truckAt(trip.route.coordinates, trip.timeline, anchors, time) : null;
 
   return (
     <>
